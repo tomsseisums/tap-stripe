@@ -23,6 +23,7 @@ REQUIRED_CONFIG_KEYS = [
 ]
 STREAM_SDK_OBJECTS = {
     'charges': {'sdk_object': stripe.Charge, 'key_properties': ['id']},
+    'refunds': {'sdk_object': stripe.Refund, 'key_properties': ['id']},
     'events': {'sdk_object': stripe.Event, 'key_properties': ['id']},
     'customers': {'sdk_object': stripe.Customer, 'key_properties': ['id']},
     'plans': {'sdk_object': stripe.Plan, 'key_properties': ['id']},
@@ -52,6 +53,7 @@ STREAM_SDK_OBJECTS = {
 # I think this can be merged into the above structure
 STREAM_REPLICATION_KEY = {
     'charges': 'created',
+    'refunds': 'created',
     'events': 'created',
     'customers': 'created',
     'plans': 'created',
@@ -74,6 +76,7 @@ STREAM_REPLICATION_KEY = {
 
 STREAM_TO_TYPE_FILTER = {
     'charges': {'type': 'charge.*', 'object': ['charge']},
+    'refunds': {'type': 'refund.*', 'object': ['refund']},
     'customers': {'type': 'customer.*', 'object': ['customer']},
     'plans': {'type': 'plan.*', 'object': ['plan']},
     'payment_intents': {'type': 'payment_intent.*', 'object': ['payment_intent']},
@@ -98,6 +101,7 @@ STREAM_TO_EXPAND_FIELDS = {
     # `tax_ids` field is not included in API response by default. To include it in the response, pass it in expand paramater.
     # Reference: https://stripe.com/docs/api/customers/object#customer_object-tax_ids
     'charges': ['data.refunds'],
+    'refunds': ['data.charge'],
     'customers': ['data.sources', 'data.subscriptions', 'data.tax_ids'],
     'plans': ['data.tiers'],
     'invoice_items': ['data.plan.tiers'],
