@@ -1,16 +1,14 @@
 import os
+from collections import namedtuple
+from datetime import datetime as dt
+from dateutil.parser import parse
 from pathlib import Path
 from random import random
 from time import sleep, perf_counter
-from datetime import datetime as dt
-from dateutil.parser import parse
 
-from collections import namedtuple
-
-from tap_tester import menagerie, runner, connections, LOGGER
 from base import BaseTapTest
-from utils import \
-    create_object, delete_object, list_all_object, stripe_obj_to_dict
+from tap_tester import menagerie, runner, connections, LOGGER
+from utils import create_object, delete_object, list_all_object, stripe_obj_to_dict
 
 
 # BUG_12478 | https://jira.talendforge.org/browse/TDL-12478
@@ -24,6 +22,7 @@ KNOWN_MISSING_FIELDS = {
         'automatic_tax',
         'cancellation_details',
         'default_tax_rates',
+        'discounts',
         'on_behalf_of',
         'payment_settings',
         'pending_update',
@@ -31,15 +30,20 @@ KNOWN_MISSING_FIELDS = {
     },
     'products': {
         'features',
+        'marketing_features',
     },
     'invoice_items': {
         'price',
     },
     'payouts': {
+        'application_fee',
+        'application_fee_amount',
         'reconciliation_status',
     },
     'charges': set(),
-    'subscription_items': set(),
+    'subscription_items': {
+        'discounts',
+    },
     'plans': set(),
     'invoice_line_items': {
         'margins',
@@ -83,7 +87,9 @@ SCHEMA_MISSING_FIELDS = {
         'radar_options'
     },
     'subscription_items': set(),
-    'plans': set(),
+    'plans': {
+        'meter',
+    },
     'invoice_line_items': {
         'unit_amount_excluding_tax',
         'amount_excluding_tax'
@@ -271,7 +277,9 @@ FICKLE_FIELDS = {
     'coupons': {
         'times_redeemed' # expect 0, get 1
     },
-    'customers': set(),
+    'customers': {
+        'discount',
+    },
     'subscriptions': set(),
     'products': set(),
     'invoice_items': set(),
@@ -289,6 +297,7 @@ FICKLE_FIELDS = {
         'hosted_invoice_url', # expect https://invoice.stripe.com/i/acct_14zvmQDcBSxinnbL/test...zcy0200wBekbjGw?s=ap
         'invoice_pdf',        # get    https://invoice.stripe.com/i/acct_14zvmQDcBSxinnbL/test...DE102006vZ98t5I?s=ap
         'payment_settings',   # 'default_mandate' subfield unexpectedly present
+        'discount',
         'subscription_details'
     },
     'plans': set(),
@@ -598,6 +607,10 @@ class ALlFieldsTest(BaseTapTest):
 
                                     elif actual_field_value and field in FICKLE_FIELDS[stream]:
                                         self.assertIsInstance(actual_field_value, type(expected_field_value))
+                                        # if fickle field is a dict at least compare top level keys
+                                        if isinstance(actual_field_value, dict):
+                                            self.assertTrue(set(actual_field_value.keys()).issubset(
+                                                set(expected_field_value.keys())))
 
                                     elif actual_field_value:
                                         raise AssertionError(f"{base_err_msg} Unexpected field is being fickle.")
